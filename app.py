@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, session
+from flask import Flask, render_template, request
 import os
 import json
 import time
@@ -13,7 +13,6 @@ def load_user_data(username):
         with open(USER_DATA_FILE, "r") as f:
             data = json.load(f)
             user_data = data.get(username, {"crops": 0, "last_played": int(time.time()), "level": 1})
-            # Убедимся, что 'level' всегда присутствует
             user_data.setdefault("level", 1)
             return user_data
     return {"crops": 0, "last_played": int(time.time()), "level": 1}
@@ -50,9 +49,9 @@ def index():
     # Сохраняем обновленные данные пользователя
     save_user_data(username, total_crops, current_time, user_data['level'])
 
+    message = ""
     if request.method == "POST":
         action = request.form.get("action")
-        message = ""
         if action == "explore":
             crops_found = 2 * user_data['level']  # Найденный урожай зависит от уровня
             total_crops += crops_found
@@ -68,66 +67,12 @@ def index():
         # Сохраняем обновленные данные пользователя
         save_user_data(username, total_crops, current_time, user_data['level'])
 
-    else:
-        message = ""
-
     crops = total_crops
     level = user_data['level']
 
     return render_template("index.html", message=message, crops=crops, username=username, level=level)
 
 if __name__ == "__main__":
-    app.run(debug=True)
-
-app = Flask(__name__)
-
-# Начальные значения
-users_data = {
-    'username': 'Игрок',
-    'level': 1,
-    'crops': 0,
-    'explorations': 0,
-    'upgrade_cost': 10  # Начальная стоимость улучшения
-}
-
-@app.route("/", methods=["GET", "POST"])
-def index():
-    if request.method == "POST":
-        action = request.form.get("action")
-
-        if action == "explore":
-            # Собираем урожай
-            users_data['crops'] += 10  # Пример увеличения урожая
-            users_data['explorations'] += 1
-            message = "Урожай собран!"
-
-        elif action == "upgrade":
-            # Проверяем достаточно ли средств для улучшения
-            if users_data['crops'] >= users_data['upgrade_cost']:
-                users_data['crops'] -= users_data['upgrade_cost']
-                users_data['level'] += 1
-                users_data['upgrade_cost'] *= 2  # Увеличиваем стоимость улучшения
-                message = "Уровень улучшен!"
-            else:
-                message = "Недостаточно урожая для улучшения!"
-
-    else:
-        message = ""
-
-    # Сохраняем данные пользователя
-    save_user_data()
-
-    return render_template("index.html", username=users_data['username'],
-                           level=users_data['level'],
-                           crops=users_data['crops'],
-                           explorations=users_data['explorations'],
-                           upgrade_cost=users_data['upgrade_cost'],  # Передаем стоимость улучшения
-                           message=message)
-
-def save_user_data():
-    # Сохранение данных в файл или другим способом
-    with open('user_data.json', 'w') as f:
-        json.dump(users_data, f)
-
-if __name__ == "__main__":
-    app.run(debug=True)
+    # Используйте переменную окружения PORT, если она существует, иначе используйте 5000
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
