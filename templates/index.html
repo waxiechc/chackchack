@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌼 CHAK CHAK</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Roboto', sans-serif; /* Использование шрифта Roboto */
+            margin: 0;
+            background: radial-gradient(circle, #ffcc00, #ff6600, #ff0000);
+            background-size: 300% 300%;
+            animation: gradient 10s ease infinite;
+            color: #fff;
+            overflow: hidden; /* Убираем полосы прокрутки */
+        }
+
+        @keyframes gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .container {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 20px;
+            width: 400px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px); /* Размытие фона контейнера */
+        }
+
+        h1 {
+            font-size: 26px;
+            margin-bottom: 20px;
+        }
+
+        .action-button {
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.3s, background-color 0.3s;
+        }
+
+        .explore {
+            background-color: #FFA500; /* Оранжево-желтая */
+            color: white;
+        }
+
+        .upgrade {
+            background-color: #4CAF50; /* Зеленая */
+            color: white;
+        }
+
+        .explore:hover {
+            transform: scale(1.05);
+        }
+
+        .upgrade:hover {
+            transform: scale(1.05);
+        }
+
+        .message {
+            margin-top: 20px;
+            font-size: 20px;
+        }
+
+        .resources {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        .timer {
+            font-size: 18px;
+            margin: 20px 0;
+            color: #ffcc00; /* Цвет таймера */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Farm!</h1>
+        <div class="resources">
+            <p>Игрок: {{ username }}</p>
+            <p>Уровень: {{ level }}</p>
+            <p>Урожай: {{ crops }}</p>
+            <p>Исследования: {{ explorations }} / 1000</p>
+            <p>Стоимость улучшения: {{ upgrade_cost }}</p> <!-- Отображение стоимости улучшения -->
+        </div>
+        <div class="timer" id="timer"></div> <!-- Элемент для отображения таймера -->
+        <form method="POST">
+            <button type="submit" name="action" value="explore" class="action-button explore">Собрать урожай</button>
+            <button type="submit" name="action" value="upgrade" class="action-button upgrade">Улучшить уровень</button>
+        </form>
+        <div class="message">{{ message }}</div>
+    </div>
+
+    <script>
+        // Установка времени для следующего сбора урожая
+        const timeLimit = 8 * 60 * 60 * 1000; // 8 часов в миллисекундах
+        let nextHarvestTime = Date.now() + timeLimit; // Устанавливаем время следующего сбора
+
+        // Проверка сохраненного времени (если оно есть)
+        const savedTime = localStorage.getItem('nextHarvestTime');
+        if (savedTime) {
+            nextHarvestTime = parseInt(savedTime);
+        } else {
+            localStorage.setItem('nextHarvestTime', nextHarvestTime);
+        }
+
+        function updateTimer() {
+            const now = Date.now();
+            const remainingTime = nextHarvestTime - now;
+
+            if (remainingTime <= 0) {
+                document.getElementById('timer').innerText = "Вы можете собрать урожай!";
+                localStorage.removeItem('nextHarvestTime'); // Удаляем сохраненное время
+            } else {
+                const hours = Math.floor((remainingTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
+                document.getElementById('timer').innerText = `Осталось: ${hours}ч ${minutes}м ${seconds}с`;
+            }
+        }
+
+        // Обновляем таймер каждую секунду
+        setInterval(updateTimer, 1000);
+        updateTimer(); // Первоначальный вызов
+    </script>
+</body>
+</html>
