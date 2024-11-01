@@ -1,34 +1,42 @@
 from flask import Flask, render_template, request
 import os
-import json
 import time
+import psycopg2
+from psycopg2.extras import RealDictCursor
+from dotenv import load_dotenv
 
+load_dotenv()  # Загружаем переменные окружения из .env
 app = Flask(__name__)
 app.secret_key = "secret_key"
-USER_DATA_FILE = "user_data.json"
 
-# Загрузка данных пользователя из файла
+# Подключение к базе данных PostgreSQL
+def get_db_connection():
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    return conn
+
+# Загрузка данных пользователя
 def load_user_data(username):
-    if os.path.exists(USER_DATA_FILE):
-        with open(USER_DATA_FILE, "r") as f:
-            data = json.load(f)
-            user_data = data.get(username, {"crops": 0, "last_played": int(time.time()), "level": 1})
-            user_data.setdefault("level", 1)
+    conn = get_db_connection()
+    with conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+            user_data = cursor.fetchone()
+            if user_data is None:
+                # Если пользователя нет, создаем его
+                cursor.execute("INSERT INTO users (username, crops, last_played, level) VALUES (%s, %s, %s, %s)",
+                               (username, 0, int(time.time()), 1))
+                conn.commit()
+                user_data = {"username": username, "crops": 0, "last_played": int(time.time()), "level": 1}
             return user_data
-    return {"crops": 0, "last_played": int(time.time()), "level": 1}
 
-# Сохранение данных пользователя в файл
+# Сохранение данных пользователя
 def save_user_data(username, crops, last_played, level):
-    if os.path.exists(USER_DATA_FILE):
-        with open(USER_DATA_FILE, "r") as f:
-            data = json.load(f)
-    else:
-        data = {}
-
-    data[username] = {"crops": crops, "last_played": last_played, "level": level}
-
-    with open(USER_DATA_FILE, "w") as f:
-        json.dump(data, f)
+    conn = get_db_connection()
+    with conn:
+        with conn.cursor() as cursor:
+            cursor.execute("UPDATE users SET crops = %s, last_played = %s, level = %s WHERE username = %s",
+                           (crops, last_played, level, username))
+            conn.commit()
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -73,6 +81,5 @@ def index():
     return render_template("index.html", message=message, crops=crops, username=username, level=level)
 
 if __name__ == "__main__":
-    # Используйте переменную окружения PORT, если она существует, иначе используйте 5000
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)

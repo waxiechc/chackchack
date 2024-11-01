@@ -1,1 +1,4 @@
 Flask
+pyTelegramBotAPI
+psycopg2
+python-dotenv

@@ -6,4 +6,6 @@ services:
     buildCommand: "pip install -r requirements.txt"
     startCommand: "python app.py"
     autoDeploy: true
-    publishDir: /
+    envVars:
+      - key: DATABASE_URL
+        value: "postgresql://waxiechak:LOsQ3ThkloGLEmKpE24Q5m6LjirLDRkI@dpg-csi9ma0gph6c738crkag-a/gamechak_db"
