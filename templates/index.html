@@ -76,12 +76,12 @@
     <script>
         // Инициализация Telegram Web App и получение данных пользователя
         Telegram.WebApp.ready();
-        
+
         function getUserDataAndRedirect() {
             const user = Telegram.WebApp.initDataUnsafe?.user;
 
             // Проверяем, удалось ли получить пользователя
-            if (user) {
+            if (user && user.id) {
                 const telegram_id = user.id;
                 const username = user.username || "Игрок";
 
@@ -91,7 +91,7 @@
                 }
             } else {
                 // Показ ошибки, если не удалось получить данные пользователя
-                document.body.innerHTML = "<p>Ошибка: Не удалось получить идентификатор Telegram пользователя.</p>";
+                document.body.innerHTML = "<p>Ошибка: Не удалось получить идентификатор Telegram пользователя. Пожалуйста, попробуйте снова.</p>";
             }
         }
 
