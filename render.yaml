@@ -9,3 +9,7 @@ services:
     envVars:
       - key: DATABASE_URL
         value: "postgresql://chak_db_user:6RA10RM6B89kVQgBVrRQ1jZ0DUWfOwLS@dpg-csiandbgbbvc73fi51og-a.oregon-postgres.render.com:5432/chak_db"
+      - key: BOT_TOKEN
+        value: "7850396701:AAGtSc8303VvuDd-_LT8xSc8THesizatG1A"
+      - key: FLASK_SECRET_KEY
+        value: "c2b9639f0e6b12c778292995483493eb01cff151935d6890"
