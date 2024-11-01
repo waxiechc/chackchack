@@ -6,7 +6,51 @@
     <title>🌼 CHAK CHAK</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* ваш текущий CSS-код */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            background: radial-gradient(circle, #ffcc00, #ff6600, #ff0000);
+            background-size: 300% 300%;
+            animation: gradient 10s ease infinite;
+            color: #fff;
+            overflow: hidden;
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .container {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 20px;
+            width: 400px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+        }
+        h1 { font-size: 26px; margin-bottom: 20px; }
+        .action-button {
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.3s, background-color 0.3s;
+        }
+        .explore { background-color: #FFA500; color: white; }
+        .upgrade { background-color: #4CAF50; color: white; }
+        .explore:hover { transform: scale(1.05); }
+        .upgrade:hover { transform: scale(1.05); }
+        .message { margin-top: 20px; font-size: 20px; }
+        .resources { font-size: 16px; margin: 10px 0; }
+        .timer { font-size: 18px; margin: 20px 0; color: #ffcc00; }
     </style>
 </head>
 <body>
@@ -32,19 +76,27 @@
     <script>
         // Инициализация Telegram Web App и получение данных пользователя
         Telegram.WebApp.ready();
-        const user = Telegram.WebApp.initDataUnsafe?.user;
+        
+        function getUserDataAndRedirect() {
+            const user = Telegram.WebApp.initDataUnsafe?.user;
 
-        if (user) {
-            const telegram_id = user.id;
-            const username = user.username || "Игрок";
+            // Проверяем, удалось ли получить пользователя
+            if (user) {
+                const telegram_id = user.id;
+                const username = user.username || "Игрок";
 
-            // Перенаправляем с telegram_id и username в URL, если их нет
-            if (!window.location.search.includes("telegram_id")) {
-                window.location.href = `/?telegram_id=${telegram_id}&username=${username}`;
+                // Проверяем, есть ли telegram_id и username в URL; если нет, добавляем их
+                if (!window.location.search.includes("telegram_id")) {
+                    window.location.href = `/?telegram_id=${telegram_id}&username=${username}`;
+                }
+            } else {
+                // Показ ошибки, если не удалось получить данные пользователя
+                document.body.innerHTML = "<p>Ошибка: Не удалось получить идентификатор Telegram пользователя.</p>";
             }
-        } else {
-            document.body.innerHTML = "<p>Ошибка: Не удалось получить идентификатор Telegram пользователя.</p>";
         }
+
+        // Ждем полной загрузки и выполняем функцию
+        document.addEventListener("DOMContentLoaded", getUserDataAndRedirect);
 
         // Скрипт для таймера
         const nextHarvestTime = parseInt(localStorage.getItem('nextHarvestTime') || Date.now() + 8 * 60 * 60 * 1000);
