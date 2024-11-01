@@ -14,6 +14,22 @@ def get_db_connection():
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     return conn
 
+# Создание таблицы users, если ее нет
+def create_table():
+    conn = get_db_connection()
+    with conn:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    username TEXT PRIMARY KEY,
+                    crops INTEGER,
+                    last_played INTEGER,
+                    level INTEGER
+                );
+            """)
+            conn.commit()
+    print("Table created successfully.")
+
 # Загрузка данных пользователя
 def load_user_data(username):
     conn = get_db_connection()
@@ -22,7 +38,6 @@ def load_user_data(username):
             cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
             user_data = cursor.fetchone()
             if user_data is None:
-                # Если пользователя нет, создаем его
                 cursor.execute("INSERT INTO users (username, crops, last_played, level) VALUES (%s, %s, %s, %s)",
                                (username, 0, int(time.time()), 1))
                 conn.commit()
@@ -81,5 +96,6 @@ def index():
     return render_template("index.html", message=message, crops=crops, username=username, level=level)
 
 if __name__ == "__main__":
+    create_table()  # Создание таблицы при запуске
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
