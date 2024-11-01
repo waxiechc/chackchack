@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 import os
 import time
 import psycopg2
@@ -21,9 +21,9 @@ def create_table():
         with conn.cursor() as cursor:
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS users (
-                    username TEXT PRIMARY KEY,
+                    telegram_id TEXT PRIMARY KEY,
                     crops INTEGER,
-                    last_played INTEGER,
+                    last_harvest_time INTEGER,
                     level INTEGER
                 );
             """)
@@ -31,69 +31,73 @@ def create_table():
     print("Table created successfully.")
 
 # Загрузка данных пользователя
-def load_user_data(username):
+def load_user_data(telegram_id):
     conn = get_db_connection()
     with conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-            cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+            cursor.execute("SELECT * FROM users WHERE telegram_id = %s", (telegram_id,))
             user_data = cursor.fetchone()
             if user_data is None:
-                cursor.execute("INSERT INTO users (username, crops, last_played, level) VALUES (%s, %s, %s, %s)",
-                               (username, 0, int(time.time()), 1))
+                cursor.execute("INSERT INTO users (telegram_id, crops, last_harvest_time, level) VALUES (%s, %s, %s, %s)",
+                               (telegram_id, 0, int(time.time()), 1))
                 conn.commit()
-                user_data = {"username": username, "crops": 0, "last_played": int(time.time()), "level": 1}
+                user_data = {"telegram_id": telegram_id, "crops": 0, "last_harvest_time": int(time.time()), "level": 1}
             return user_data
 
 # Сохранение данных пользователя
-def save_user_data(username, crops, last_played, level):
+def save_user_data(telegram_id, crops, last_harvest_time, level):
     conn = get_db_connection()
     with conn:
         with conn.cursor() as cursor:
-            cursor.execute("UPDATE users SET crops = %s, last_played = %s, level = %s WHERE username = %s",
-                           (crops, last_played, level, username))
+            cursor.execute("UPDATE users SET crops = %s, last_harvest_time = %s, level = %s WHERE telegram_id = %s",
+                           (crops, last_harvest_time, level, telegram_id))
             conn.commit()
+
+# Функция для автоматического сбора урожая
+def calculate_harvest(user_data):
+    current_time = int(time.time())
+    elapsed_time = current_time - user_data['last_harvest_time']
+    # Проверка времени сбора урожая каждые 8 часов
+    if elapsed_time >= 8 * 3600:  # 8 часов в секундах
+        user_data['last_harvest_time'] = current_time
+        user_data['crops'] = 0  # Урожай сбрасывается каждые 8 часов
+    else:
+        user_data['crops'] += (elapsed_time // 3600) * 125  # Добавляем урожай в зависимости от прошедших часов
+        user_data['last_harvest_time'] += (elapsed_time // 3600) * 3600  # Обновляем время на полные часы
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    username = request.args.get("username", "Гость")
-    user_data = load_user_data(username)
+    telegram_id = request.args.get("telegram_id")
+    if not telegram_id:
+        return "Ошибка: Не удалось получить идентификатор Telegram пользователя."
 
-    # Проверяем время последней игры
-    current_time = int(time.time())
-    elapsed_time = current_time - user_data['last_played']
+    user_data = load_user_data(telegram_id)
 
-    # Обновляем ресурсы
-    new_crops = elapsed_time // 600  # 1 урожай каждые 10 минут
-    total_crops = user_data['crops'] + new_crops
-
-    # Обновляем информацию о пользователе
-    user_data['last_played'] = current_time
-
-    # Сохраняем обновленные данные пользователя
-    save_user_data(username, total_crops, current_time, user_data['level'])
+    # Обновляем прогресс сбора урожая
+    calculate_harvest(user_data)
 
     message = ""
     if request.method == "POST":
         action = request.form.get("action")
         if action == "explore":
             crops_found = 2 * user_data['level']  # Найденный урожай зависит от уровня
-            total_crops += crops_found
+            user_data['crops'] += crops_found
             message = f"Вы исследовали поле и нашли {crops_found} урожая!"
         elif action == "upgrade":
-            if total_crops >= 10:  # Сброс уровня при 10 урожаях
-                total_crops -= 10
+            if user_data['crops'] >= 10:  # Стоимость улучшения уровня
+                user_data['crops'] -= 10
                 user_data['level'] += 1
                 message = f"Вы повысили уровень! Теперь вы на уровне {user_data['level']}."
             else:
                 message = "У вас недостаточно урожая для повышения уровня!"
 
         # Сохраняем обновленные данные пользователя
-        save_user_data(username, total_crops, current_time, user_data['level'])
+        save_user_data(telegram_id, user_data['crops'], user_data['last_harvest_time'], user_data['level'])
 
-    crops = total_crops
+    crops = user_data['crops']
     level = user_data['level']
 
-    return render_template("index.html", message=message, crops=crops, username=username, level=level)
+    return render_template("index.html", message=message, crops=crops, username=telegram_id, level=level)
 
 if __name__ == "__main__":
     create_table()  # Создание таблицы при запуске
